@@ -1,36 +1,63 @@
 import asyncio
 from telethon import TelegramClient, events
 
-api_id = --TheId--
-api_hash = --TheHash--
-group_username = --groupname--
+import time
+from matplotlib.pyplot import plot
+from binance.client import Client
+clientBinance = Client(binance-API-ID, binance-API-HASH)
 
-client = TelegramClient(--sessionName--, api_id, api_hash)
+api_id = Telegram-API-ID
+api_hash = Telegram-API-HASH
+group_username = Telegram-Group-Name
+
+client = TelegramClient(Telegram-Session-Name, api_id, api_hash)
 
 
-themsg = ""
+thecoin = ""
 
+# asynchronous event handler for new messages
 @client.on(events.NewMessage(chats = group_username, incoming = True))
 async def handler(event):
     chats = await client.get_messages(group_username, 1)
-    global themsg
+    global thecoin
     themsg = chats[0].message
-    #if(themsg[0:8]=='The coin'):
-    if(themsg):
-        counter = 0
-        while(themsg[counter]!=':'):
-           counter = counter + 1
-           if(themsg[counter+2]=='$'):
-              thecoin = themsg[counter+3:counter+6]
-           else:
-              thecoin = themsg[counter+2:counter+5]
+    print("The received message is: " + themsg)
+    
+    # A very basic algorithm to check the coin name
+    if(themsg[0:9]=='COIN IS :'):
+        coinlen = len(themsg)
+        counter = 9
+        while(not themsg[counter].isalpha()):
+            counter = counter + 1
+        thestarter = counter
+        print("Founded counter value is: " + str(counter))    
+        while (themsg[counter].isalpha()):
+            counter = counter + 1
+            if (counter == coinlen):
+                break
+        thecoin = themsg[thestarter:counter].upper()
+        print("Possible coin name is: " + thecoin)
         await client.disconnect()
-    # Say "!pong" whenever you send "!ping", then delete both messages
-    # m = await event.respond('!pong')
-    # await asyncio.sleep(5)
-    # sawait client.delete_messages(event.chat_id, [event.id, m.id])  
 
 client.start()
 client.run_until_disconnected()
 
-print(themsg)
+# print the founded symbol
+thesymbol = str(thecoin) + "BTC"
+print("The founded symbol is: " + thesymbol)
+
+# track symbol in binance
+start = time.time()
+thefile = open("thepricedata.txt","w") 
+ticker = clientBinance.get_orderbook_ticker(symbol=thesymbol)
+firstprice = float(ticker['askPrice'])
+thetime = 0
+while(thetime < 1200):
+    ticker = clientBinance.get_orderbook_ticker(symbol=thesymbol)
+    lastprice = float(ticker['askPrice'])
+    thetime = time.time() - start
+    thefile.write(str(thetime) + "\t" + str(lastprice) + "\n")
+    firstprice = lastprice
+
+thefile.close()
+print("end")
